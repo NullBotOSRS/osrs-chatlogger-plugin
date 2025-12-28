@@ -72,21 +72,14 @@ public class ChatSender
     private volatile String username = null;
 
     @Inject
-    public ChatSender(OsrsChatloggerConfig config)
-    {
-        this.config = config;
-        this.gson = new Gson();
+public ChatSender(OsrsChatloggerConfig config, Gson gson, OkHttpClient httpClient)
+{
+    this.config = config;
+    this.gson = gson;
+    this.httpClient = httpClient;
 
-        // Configure HTTP client with timeouts
-        this.httpClient = new OkHttpClient.Builder()
-            .connectTimeout(15, TimeUnit.SECONDS)
-            .writeTimeout(15, TimeUnit.SECONDS)
-            .readTimeout(15, TimeUnit.SECONDS)
-            .retryOnConnectionFailure(true)
-            .build();
-
-        startScheduler();
-    }
+    startScheduler();
+}
 
     private void startScheduler()
     {
