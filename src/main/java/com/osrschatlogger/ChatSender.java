@@ -137,7 +137,7 @@ public class ChatSender
 
         Request request = new Request.Builder()
             .url(url)
-            .post(RequestBody.create("{}", JSON_MEDIA_TYPE))
+            .post(RequestBody.create(JSON_MEDIA_TYPE, "{}"))
             .addHeader("Authorization", "Bearer " + apiKey)
             .addHeader("User-Agent", USER_AGENT)
             .build();
@@ -160,7 +160,7 @@ public class ChatSender
                     if (response.isSuccessful() && body != null)
                     {
                         String responseBody = body.string();
-                        JsonObject json = JsonParser.parseString(responseBody).getAsJsonObject();
+                        JsonObject json = new JsonParser().parse(responseBody).getAsJsonObject();
                         
                         if (json.has("valid") && json.get("valid").getAsBoolean())
                         {
@@ -284,7 +284,7 @@ public class ChatSender
 
         Request request = new Request.Builder()
             .url(url)
-            .post(RequestBody.create(requestBody.toString(), JSON_MEDIA_TYPE))
+            .post(RequestBody.create(JSON_MEDIA_TYPE, requestBody.toString()))
             .addHeader("Authorization", "Bearer " + config.apiKey())
             .addHeader("User-Agent", USER_AGENT)
             .build();
