@@ -388,35 +388,23 @@ public ChatSender(OsrsChatloggerConfig config, Gson gson, OkHttpClient httpClien
     /**
      * Shutdown the sender gracefully.
      */
-    public void shutdown()
+   public void shutdown()
+{
+    log.info("Shutting down ChatSender...");
+    
+    // Send any remaining messages
+    flush();
+
+    if (batchTask != null)
     {
-        log.info("Shutting down ChatSender...");
-        
-        // Send any remaining messages
-        flush();
-
-        if (batchTask != null)
-        {
-            batchTask.cancel(false);
-        }
-
-        if (scheduler != null)
-        {
-            scheduler.shutdown();
-            try
-            {
-                if (!scheduler.awaitTermination(5, TimeUnit.SECONDS))
-                {
-                    scheduler.shutdownNow();
-                }
-            }
-            catch (InterruptedException e)
-            {
-                scheduler.shutdownNow();
-                Thread.currentThread().interrupt();
-            }
-        }
+        batchTask.cancel(false);
     }
+
+    if (scheduler != null)
+    {
+        scheduler.shutdownNow();
+    }
+}
 
     // Status getters
     public boolean isConnected()
