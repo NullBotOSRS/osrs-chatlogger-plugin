@@ -39,6 +39,7 @@ public class ChatData
     private String rsn;
     private int world;
     private String clan;
+    private String ironmanType;
 
     public ChatData()
     {
@@ -55,6 +56,6 @@ public class ChatData
     @Override
     public String toString()
     {
-        return String.format("ChatData{type=%s, sender=%s, message=%s}", type, sender, message);
+        return String.format("ChatData{type=%s, sender=%s, message=%s, ironmanType=%s}", type, sender, message, ironmanType);
     }
 }
