@@ -161,6 +161,7 @@ public class OsrsChatloggerPlugin extends Plugin
         // Build message data
         ChatData chatData = new ChatData();
         chatData.setType(mapChatType(type));
+        chatData.setIronmanType(detectIronmanType(event.getName()));
         chatData.setSender(cleanName(event.getName()));
         chatData.setMessage(cleanMessage(event.getMessage()));
         chatData.setTimestamp(ISO_FORMATTER.format(Instant.now()));
@@ -257,7 +258,19 @@ public class OsrsChatloggerPlugin extends Plugin
                 return type.name();
         }
     }
-
+    private String detectIronmanType(String name)
+    {
+        if (name == null)
+        {
+            return "";
+        }
+        if (name.contains("<img=2>")) return "ironman";
+        if (name.contains("<img=10>")) return "hardcore";
+        if (name.contains("<img=3>")) return "ultimate";
+        if (name.contains("<img=41>")) return "group";
+        return "";
+    }
+    
     private String cleanName(String name)
     {
         if (name == null)
