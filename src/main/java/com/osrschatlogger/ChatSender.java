@@ -26,7 +26,6 @@ package com.osrschatlogger;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
 
@@ -72,14 +71,19 @@ public class ChatSender
     private volatile String username = null;
 
     @Inject
-public ChatSender(OsrsChatloggerConfig config, Gson gson, OkHttpClient httpClient)
-{
-    this.config = config;
-    this.gson = gson;
-    this.httpClient = httpClient;
+    public ChatSender(OsrsChatloggerConfig config, Gson gson, OkHttpClient httpClient)
+    {
+        this.config = config;
+        this.gson = gson;
+        // Configure timeouts to prevent hanging on slow/dead connections
+        this.httpClient = httpClient.newBuilder()
+            .connectTimeout(10, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .writeTimeout(30, TimeUnit.SECONDS)
+            .build();
 
-    startScheduler();
-}
+        startScheduler();
+    }
 
     private void startScheduler()
     {
@@ -153,7 +157,7 @@ public ChatSender(OsrsChatloggerConfig config, Gson gson, OkHttpClient httpClien
                     if (response.isSuccessful() && body != null)
                     {
                         String responseBody = body.string();
-                        JsonObject json = new JsonParser().parse(responseBody).getAsJsonObject();
+                        JsonObject json = gson.fromJson(responseBody, JsonObject.class);
                         
                         if (json.has("valid") && json.get("valid").getAsBoolean())
                         {

@@ -29,15 +29,20 @@ import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
 import net.runelite.api.GameState;
+import net.runelite.api.clan.ClanChannel;
 import net.runelite.api.events.ChatMessage;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
+import net.runelite.client.ui.ClientToolbar;
+import net.runelite.client.ui.NavigationButton;
 import net.runelite.client.ui.overlay.OverlayManager;
+import net.runelite.client.util.ImageUtil;
 
 import javax.inject.Inject;
+import java.awt.image.BufferedImage;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
@@ -70,6 +75,12 @@ public class OsrsChatloggerPlugin extends Plugin
     @Inject
     private OsrsChatloggerOverlay overlay;
 
+    @Inject
+    private ClientToolbar clientToolbar;
+
+    private NavigationButton navButton;
+    private OsrsChatloggerPanel panel;
+
     // Chat types to capture
     private static final Set<ChatMessageType> LOGGED_TYPES = EnumSet.of(
         ChatMessageType.PUBLICCHAT,
@@ -92,12 +103,27 @@ public class OsrsChatloggerPlugin extends Plugin
 
     private String currentRsn = null;
     private int currentWorld = -1;
+    private String currentClanName = null;
 
     @Override
     protected void startUp() throws Exception
     {
         log.info("OSRS Chatlogger started!");
         overlayManager.add(overlay);
+        
+        // Create and register the side panel
+        panel = new OsrsChatloggerPanel(chatSender);
+        
+        final BufferedImage icon = ImageUtil.loadImageResource(getClass(), "/icon.png");
+        
+        navButton = NavigationButton.builder()
+            .tooltip("OSRS Chatlogger")
+            .icon(icon)
+            .priority(5)
+            .panel(panel)
+            .build();
+        
+        clientToolbar.addNavigation(navButton);
         
         // Validate API key on startup
         if (isConfigured())
@@ -111,6 +137,7 @@ public class OsrsChatloggerPlugin extends Plugin
     {
         log.info("OSRS Chatlogger stopped!");
         overlayManager.remove(overlay);
+        clientToolbar.removeNavigation(navButton);
         chatSender.shutdown();
     }
 
@@ -124,7 +151,12 @@ public class OsrsChatloggerPlugin extends Plugin
             {
                 currentRsn = client.getLocalPlayer().getName();
                 currentWorld = client.getWorld();
-                log.debug("Logged in as {} on world {}", currentRsn, currentWorld);
+                
+                // Capture clan name (null-safe)
+                ClanChannel clanChannel = client.getClanChannel();
+                currentClanName = (clanChannel != null) ? clanChannel.getName() : null;
+                
+                log.debug("Logged in as {} on world {}, clan: {}", currentRsn, currentWorld, currentClanName);
                 
                 // Re-validate API key when logging into game
                 if (isConfigured())
@@ -139,6 +171,7 @@ public class OsrsChatloggerPlugin extends Plugin
             chatSender.flush();
             currentRsn = null;
             currentWorld = -1;
+            currentClanName = null;
         }
     }
 
@@ -167,9 +200,25 @@ public class OsrsChatloggerPlugin extends Plugin
         chatData.setTimestamp(ISO_FORMATTER.format(Instant.now()));
         chatData.setRsn(currentRsn);
         chatData.setWorld(currentWorld);
+        
+        // Populate clan name for clan-related message types
+        if (isClanMessageType(type) && currentClanName != null)
+        {
+            chatData.setClan(currentClanName);
+        }
 
         // Send to server
         chatSender.queueMessage(chatData);
+    }
+    
+    private boolean isClanMessageType(ChatMessageType type)
+    {
+        return type == ChatMessageType.CLAN_CHAT 
+            || type == ChatMessageType.CLAN_MESSAGE
+            || type == ChatMessageType.CLAN_GUEST_CHAT
+            || type == ChatMessageType.CLAN_GUEST_MESSAGE
+            || type == ChatMessageType.CLAN_GIM_CHAT
+            || type == ChatMessageType.CLAN_GIM_MESSAGE;
     }
 
     private boolean isConfigured()
